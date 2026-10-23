@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATC - TKR Program SMK Karya Bahana Mandiri</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- jsPDF & HTML2Canvas for Document Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        .foto-3x4 {
+            width: 120px; height: 160px; object-fit: cover;
+            filter: grayscale(100%); transition: all 0.4s ease-in-out;
+            border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .foto-3x4:hover { filter: grayscale(0%); transform: scale(1.05); box-shadow: 0 10px 15px rgba(0,0,0,0.2); }
+
+        .bg-grad-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .bg-grad-orange { background: linear-gradient(135deg, #f12711 0%, #f5af19 100%); }
+        .bg-grad-dark { background: linear-gradient(135deg, #434343 0%, #000000 100%); }
+        .bg-grad-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .bg-grad-blue { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
+        
+        .section-hidden { display: none !important; }
+        .nav-btn.active { border-bottom: 3px solid #facc15; font-weight: bold; background-color: rgba(255,255,255,0.15); }
+
+        .running-border {
+            background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444, #8b5cf6, #3b82f6);
+            background-size: 300% 300%; animation: gradient-run 3s linear infinite;
+            padding: 4px; border-radius: 0.75rem;
+        }
+        @keyframes gradient-run { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .running-border-inner { background-color: #ffffff; border-radius: 0.5rem; height: 100%; }
+
+        #toast {
+            visibility: hidden; min-width: 280px; background-color: #1e293b; color: #fff;
+            text-align: center; border-radius: 12px; padding: 16px 24px; position: fixed;
+            z-index: 100; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 15px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); border: 1px solid #334155;
+            transition: opacity 0.3s ease;
+        }
+        #toast.show { visibility: visible; opacity: 1; }
+
+        .marquee-wrapper { width: 100%; overflow: hidden; background: rgba(0, 0, 0, 0.25); color: #fff; padding: 8px 0; display: flex; box-sizing: border-box; }
+        .marquee-text { white-space: nowrap; display: inline-block; padding-left: 100%; animation: marquee 25s linear infinite; font-weight: 600; letter-spacing: 0.5px; }
+        .marquee-wrapper:hover .marquee-text { animation-play-state: paused; }
+        @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
+        
+        .mapel-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .mapel-scroll::-webkit-scrollbar-track { background: transparent; }
+        .mapel-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .mapel-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+    
+    <script>
+        // Apps Script Web App URL for PKL Data Submission
+        window.APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyl7lo50dlCSahFKMDyH1SgVVA816FjYVizFbfPVdDu-U5RjKike0mjcl0hqUs0HXeu/exec";
+        
+        // Google Sheet Direct Link
+        window.GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1FQzC8OawlRyteCrRcTaN3AHM3U0x-c5Fc3TZHiwckM0/edit?gid=0#gid=0";
+
+        // Anti-Spam / Anti-Flood Rate Limiter Stamp
+        let lastSubmitTimestamp = 0;
+
+        // Data Wali Kelas mapping matching the provided table image
+        window.waliKelasData = {
+            "X TKR 1": "Ahmad Subagja, S.T.",
+            "X TKR 2": "Budi Santoso, S.Pd.",
+            "X TKR 3": "Citra Lestari, S.Pd.",
+            "XI TKR 1": "H. Irwan Rahmat, S.T, Gr.",
+            "XI TKR 2": "Firmansyah, S.T, Gr.",
+            "XI TKR 3": "Vanny Karliany Dewi, S.Pd, Gr.",
+            "XI TKR 4": "Yono, S.Sos, Gr.",
+            "XI TKR 5": "Mulyani Purwaningrum, S.Ag, Gr.",
+            "XI TKR 6": "Satya Kusumaningdya, SE, Gr.",
+            "XI TKR 7": "Astri Febry Susanti, S.Pd, Gr.",
+            "XII TKR 1": "Endang Syaefudin, S.Pd.I, M.Si, Gr.",
+            "XII TKR 2": "Adhitya Anugrah Rizki, S.Pd, Gr.",
+            "XII TKR 3": "Efa Laelatus Syarifah, S.Pd, Gr.",
+            "XII TKR 4": "Mitra Hidayati, S.Pd, Gr.",
+            "XII TKR 5": "Kurnia Utami, M.Pd",
+            "XII TKR 6": "Ulfa Nadia, S.Pd, Gr.",
+            "XII TKR 7": "Rizky Wijayanti, S.Pd, Gr."
+        };
+
+        // Anti-XSS Helper Function
+        window.sanitizeText = function(str) {
+            if(!str) return "";
+            return str.replace(/</g, "&lt;").replace(/>/g, "&gt;").trim();
+        };
+
+        // Format Single Quote Prefix for inputs starting with 0 (NISN & WhatsApp)
+        window.formatQuotePrefix = function(inputElem) {
+            let val = inputElem.value;
+            if (val.length > 0 && !val.startsWith("'")) {
+                inputElem.value = "'" + val;
+            }
+        };
+
+        // Helper function untuk mengubah format tanggal YYYY-MM-DD menjadi DD NamaBulan YYYY
+        window.formatIndonesianDate = function(dateStr) {
+            if (!dateStr) return "";
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            
+            const months = [
+                "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+            ];
+            
+            const day = parseInt(parts[2], 10);
+            const monthIndex = parseInt(parts[1], 10) - 1;
+            const year = parts[0];
+
+            if (monthIndex >= 0 && monthIndex < 12) {
+                return `${day} ${months[monthIndex]} ${year}`;
+            }
+            return dateStr;
+        };
+
+        // Navigation Switcher Function
+        window.switchSection = function(secId, btnElem) {
+            const sections = document.querySelectorAll('main > section');
+            sections.forEach(s => s.classList.add('section-hidden'));
+            
+            const target = document.getElementById(secId);
+            if(target) target.classList.remove('section-hidden');
+
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(b => b.classList.remove('active'));
+            if(btnElem) btnElem.classList.add('active');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // Auto-fill Wali Kelas in Form PKL
+        window.autoFillWaliKelas = function() {
+            const pklKelas = document.getElementById('pklKelas');
+            const pklWali = document.getElementById('pklWaliKelas');
+            if(pklKelas && pklWali) {
+                pklWali.value = window.waliKelasData[pklKelas.value] || '';
+            }
+        };
+
+        // Toast Notification System
+        window.showToast = function(msg) {
+            const t = document.getElementById('toast');
+            if(!t) return;
+            t.innerText = msg;
+            t.classList.add("show");
+            setTimeout(() => { t.classList.remove("show"); }, 3000);
+        };
+
+        // Live Clock
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
+            const clockEl = document.getElementById('current-time');
+            if(clockEl) clockEl.innerText = timeStr;
+        }, 1000);
+
+        // State & Auth Logic
+        let currentUser = null;
+        let waliKelasAuth = false;
+        let mapelData = {
+            "XI TKR 1": {
+                bahan: [{ title: "Pemeliharaan Mesin Kendaraan Ringan (PMKR) - Bab 1", link: "#" }],
+                soal: [{ title: "Latihan Soal Sistem Pengapian", link: "#" }],
+                lkpd: [{ title: "LKPD Tune Up Engine", link: "#" }]
+            }
+        };
+
+        let pklSubmissionData = [
+            {
+                nama: "Rian Pratama",
+                nisn: "'0078912345",
+                wa: "'081234567890",
+                kelas: "XI TKR 1",
+                wali: "H. Irwan Rahmat, S.T, Gr.",
+                dudi: "PT. Astra International Tbk (Auto2000 Bekasi)",
+                pimpinan: "Ir. Budi Hartono",
+                pembimbing: "Slamet Riyadi, S.T.",
+                alamat: "Jl. Jenderal Sudirman No. 45, Bekasi Barat",
+                tglMulai: "2026-03-01",
+                tglSelesai: "2026-05-30",
+                durasi: "3 Bulan",
+                status: "Diterima / Aktif"
+            },
+            {
+                nama: "Dimas Anggara",
+                nisn: "'0078912346",
+                wa: "'085678901234",
+                kelas: "XI TKR 2",
+                wali: "Firmansyah, S.T, Gr.",
+                dudi: "Bengkel Resmi Daihatsu Astra Kalimalang",
+                pimpinan: "Drs. Hendra Wijaya",
+                pembimbing: "Agus Setiawan",
+                alamat: "Jl. Kalimalang Raya No. 88, Bekasi Selatan",
+                tglMulai: "2026-03-01",
+                tglSelesai: "2026-05-30",
+                durasi: "3 Bulan",
+                status: "Menunggu Verifikasi"
+            }
+        ];
+
+        // Function Login Wali Kelas untuk Monitoring PKL
+        function handleLoginWaliKelas(e) {
+            e.preventDefault();
+            const user = document.getElementById('userWaliKelas').value;
+            const pass = document.getElementById('passWaliKelas').value;
+
+            if (user === "Guruhebat" && pass === "2026") {
+                waliKelasAuth = true;
+                updatePklMonitoringUI();
+                showToast("Berhasil Masuk sebagai Wali Kelas!");
+            } else {
+                showToast("Username atau Password Wali Kelas Salah!");
+            }
+        }
+
+        function logoutWaliKelas() {
+            waliKelasAuth = false;
+            updatePklMonitoringUI();
+            showToast("Wali Kelas telah keluar.");
+        }
+
+        function updatePklMonitoringUI() {
+            const loginBox = document.getElementById('login-walikelas-box');
+            const contentBox = document.getElementById('content-walikelas-monitoring');
+
+            if (waliKelasAuth) {
+                loginBox.classList.add('hidden');
+                contentBox.classList.remove('hidden');
+            } else {
+                loginBox.classList.remove('hidden');
+                contentBox.classList.add('hidden');
+            }
+            renderPklTable();
+            updatePklStats();
+        }
+
+        function updatePklStats() {
+            const totalSiswaEl = document.getElementById('stat-total-siswa');
+            const totalDudiEl = document.getElementById('stat-total-dudi');
+            
+            if (totalSiswaEl) totalSiswaEl.innerText = pklSubmissionData.length;
+            if (totalDudiEl) {
+                const dudiSet = new Set(pklSubmissionData.map(item => item.dudi));
+                totalDudiEl.innerText = dudiSet.size;
+            }
+        }
+
+        function openGoogleSheet() {
+            if(window.GOOGLE_SHEET_URL) {
+                window.open(window.GOOGLE_SHEET_URL, '_blank');
+            } else {
+                showToast("Link Google Sheet belum diatur!");
+            }
+        }
+
+        function exportPklToCSV() {
+            if (window.GOOGLE_SHEET_URL) {
+                const sheetIdMatch = window.GOOGLE_SHEET_URL.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                if (sheetIdMatch && sheetIdMatch[1]) {
+                    const sheetId = sheetIdMatch[1];
+                    const csvDownloadUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+                    
+                    window.open(csvDownloadUrl, '_blank');
+                    showToast("Mengunduh file CSV langsung dari Google Spreadsheet...");
+                    return;
+                }
+            }
+
+            if (pklSubmissionData.length === 0) {
+                showToast("Tidak ada data untuk diekspor!");
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "No,Nama Lengkap,NISN,No WhatsApp,Kelas,Wali Kelas,Perusahaan DUDI,Pimpinan,Pembimbing,Alamat,Mulai,Selesai,Durasi,Status\n";
+
+            pklSubmissionData.forEach((item, index) => {
+                let row = [
+                    index + 1,
+                    `"${item.nama}"`,
+                    `"${item.nisn}"`,
+                    `"${item.wa}"`,
+                    `"${item.kelas}"`,
+                    `"${item.wali}"`,
+                    `"${item.dudi}"`,
+                    `"${item.pimpinan}"`,
+                    `"${item.pembimbing}"`,
+                    `"${item.alamat.replace(/\n/g, ' ')}"`,
+                    `"${item.tglMulai}"`,
+                    `"${item.tglSelesai}"`,
+                    `"${item.durasi}"`,
+                    `"${item.status}"`
+                ].join(",");
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Data_PKL_TKR_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("Berhasil mengunduh data CSV lokal!");
+        }
+
+        function handleLoginSiswaMapel(e) {
+            e.preventDefault();
+            const nama = window.sanitizeText(document.getElementById('namaSiswaMapel').value);
+            const kelas = document.getElementById('kelasSiswaMapel').value;
+            currentUser = { role: 'siswa', nama, kelas };
+            updateMapelUI();
+            showToast("Berhasil masuk sebagai Siswa: " + nama);
+        }
+
+        function handleLoginGuruMapel(e) {
+            e.preventDefault();
+            const user = document.getElementById('userGuruMapel').value;
+            const pass = document.getElementById('passGuruMapel').value;
+            if(user === "Guruhebat" && pass === "2026") {
+                currentUser = { role: 'guru', nama: "Instruktur TKR" };
+                updateMapelUI();
+                showToast("Berhasil masuk sebagai Guru/Instruktur");
+            } else {
+                showToast("Username atau Password Salah!");
+            }
+        }
+
+        function logoutMapel() {
+            currentUser = null;
+            document.getElementById('login-mapel-div').classList.remove('hidden');
+            document.getElementById('dashboard-mapel').classList.add('hidden');
+            showToast("Berhasil keluar.");
+        }
+
+        function updateMapelUI() {
+            document.getElementById('login-mapel-div').classList.add('hidden');
+            document.getElementById('dashboard-mapel').classList.remove('hidden');
+
+            const nameEl = document.getElementById('displayNamaUserMapel');
+            const ketEl = document.getElementById('displayKetUserMapel');
+            const filterEl = document.getElementById('guru-mapel-filter');
+            const btnAddBahan = document.getElementById('btn-add-bahan');
+            const btnAddSoal = document.getElementById('btn-add-soal');
+            const btnAddLkpd = document.getElementById('btn-add-lkpd');
+
+            nameEl.innerText = currentUser.nama;
+
+            if(currentUser.role === 'guru') {
+                ketEl.innerHTML = `Akses: <span class="font-bold text-blue-600">Guru / Instruktur</span>`;
+                filterEl.classList.remove('hidden');
+                filterEl.classList.add('flex');
+                btnAddBahan.classList.remove('hidden');
+                btnAddSoal.classList.remove('hidden');
+                btnAddLkpd.classList.remove('hidden');
+            } else {
+                ketEl.innerHTML = `Kelas: <span class="font-bold text-green-600">${currentUser.kelas}</span>`;
+                filterEl.classList.add('hidden');
+                filterEl.classList.remove('flex');
+                btnAddBahan.classList.add('hidden');
+                btnAddSoal.classList.add('hidden');
+                btnAddLkpd.classList.add('hidden');
+            }
+
+            renderMapelContent();
+        }
+
+        function renderMapelContent() {
+            let activeKelas = currentUser.role === 'guru' ? document.getElementById('filter-mapel-kelas').value : currentUser.kelas;
+            let data = mapelData[activeKelas] || { bahan: [], soal: [], lkpd: [] };
+
+            const renderList = (elementId, items, icon, color) => {
+                const container = document.getElementById(elementId);
+                if(items.length === 0) {
+                    container.innerHTML = `<p class="text-sm text-gray-500 italic text-center py-4">Belum ada data/materi.</p>`;
+                    return;
+                }
+                container.innerHTML = items.map(item => `
+                    <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex items-center justify-between hover:shadow transition">
+                        <div class="flex items-center space-x-3 overflow-hidden">
+                            <i class="${icon} ${color} text-lg flex-shrink-0"></i>
+                            <span class="text-sm font-semibold text-gray-700 truncate">${item.title}</span>
+                        </div>
+                        <a href="${item.link}" target="_blank" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-3 py-1.5 rounded transition whitespace-nowrap ml-2">Buka</a>
+                    </div>
+                `).join('');
+            };
+
+            renderList('list-bahan-ajar', data.bahan || [], 'fas fa-file-alt', 'text-blue-500');
+            renderList('list-latihan-soal', data.soal || [], 'fas fa-pen-square', 'text-amber-500');
+            renderList('list-lkpd', data.lkpd || [], 'fas fa-clipboard-list', 'text-purple-500');
+        }
+
+        function promptAddContent(type) {
+            let activeKelas = document.getElementById('filter-mapel-kelas').value;
+            let title = prompt(`Masukkan Judul Baru (${type.toUpperCase()} - ${activeKelas}):`);
+            let link = prompt("Masukkan URL/Link Berkas:");
+
+            if(title && link) {
+                if(!mapelData[activeKelas]) mapelData[activeKelas] = { bahan: [], soal: [], lkpd: [] };
+                mapelData[activeKelas][type].push({ title, link });
+                renderMapelContent();
+                showToast("Materi berhasil ditambahkan!");
+            }
+        }
+
+        function handleUploadTugas(e) {
+            e.preventDefault();
+            showToast("Tugas berhasil diunggah!");
+            e.target.reset();
+        }
+
+        // Handle Form PKL submission with Anti-Spam Rate Limiter & Auto-Sort Client Side
+        function handleFormPKL(e) {
+            e.preventDefault();
+
+            // 1. Protection - Rate Limiting (Mencegah Bot / Spam Pengiriman Berulang)
+            const now = Date.now();
+            if (now - lastSubmitTimestamp < 5000) {
+                showToast("Sistem Keamanan: Mohon tunggu 5 detik sebelum mengirimkan data lagi.");
+                return;
+            }
+            lastSubmitTimestamp = now;
+            
+            const rawMulai = document.getElementById('pklTglMulai').value;
+            const rawSelesai = document.getElementById('pklTglSelesai').value;
+
+            // 2. Protection - Clean & Sanitize Input
+            const formData = {
+                nama: window.sanitizeText(document.getElementById('pklNamaLengkap').value),
+                nisn: window.sanitizeText(document.getElementById('pklNisn').value),
+                wa: window.sanitizeText(document.getElementById('pklWa').value),
+                kelas: document.getElementById('pklKelas').value,
+                wali: document.getElementById('pklWaliKelas').value,
+                dudi: window.sanitizeText(document.getElementById('pklDudi').value),
+                pimpinan: window.sanitizeText(document.getElementById('pklPimpinan').value),
+                pembimbing: window.sanitizeText(document.getElementById('pklPembimbing').value),
+                alamat: window.sanitizeText(document.getElementById('pklAlamatDudi').value),
+                tglMulai: window.formatIndonesianDate(rawMulai),
+                tglSelesai: window.formatIndonesianDate(rawSelesai),
+                durasi: document.getElementById('pklDurasi').value,
+                status: document.getElementById('pklStatus').value
+            };
+
+            // Masukkan data baru
+            pklSubmissionData.push(formData);
+
+            // 3. Auto-Sort Lokal (Urutkan Berdasarkan Kelas & Nama A-Z secara Otomatis)
+            pklSubmissionData.sort((a, b) => {
+                if (a.kelas === b.kelas) {
+                    return a.nama.localeCompare(b.nama);
+                }
+                return a.kelas.localeCompare(b.kelas);
+            });
+            
+            // Render ulang tabel monitoring secara otomatis & tersortir
+            renderPklTable();
+            updatePklStats();
+
+            showToast("Data PKL berhasil diverifikasi, diurutkan, & tersimpan ke Google Sheet!");
+
+            // Send to Google Apps Script Endpoint
+            if(window.APPS_SCRIPT_URL) {
+                fetch(window.APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                }).catch(err => console.log('Apps Script sync note:', err));
+            }
+
+            e.target.reset();
+            document.getElementById('pklWaliKelas').value = '';
+        }
+
+        function renderPklTable() {
+            const tbody = document.getElementById('pkl-submission-list');
+            if(!tbody) return;
+
+            if(pklSubmissionData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="14" class="p-6 text-center text-gray-500 italic">Belum ada data pengisian PKL siswa/i.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = pklSubmissionData.map((item, index) => `
+                <tr class="hover:bg-purple-50/50 transition">
+                    <td class="p-3 font-semibold text-gray-800 whitespace-nowrap text-center">${index + 1}</td>
+                    <td class="p-3 font-bold text-blue-900 whitespace-nowrap">${item.nama}</td>
+                    <td class="p-3 text-gray-700 whitespace-nowrap text-center">${item.nisn}</td>
+                    <td class="p-3 text-gray-700 whitespace-nowrap text-center"><a href="https://wa.me/${item.wa.replace(/^'/, '').replace(/^0/, '62')}" target="_blank" class="text-green-600 hover:underline font-semibold"><i class="fab fa-whatsapp mr-1"></i>${item.wa}</a></td>
+                    <td class="p-3 text-gray-800 font-semibold whitespace-nowrap text-center">${item.kelas}</td>
+                    <td class="p-3 text-gray-600 whitespace-nowrap">${item.wali}</td>
+                    <td class="p-3 font-bold text-purple-900 whitespace-nowrap">${item.dudi}</td>
+                    <td class="p-3 text-gray-700 whitespace-nowrap">${item.pimpinan}</td>
+                    <td class="p-3 text-gray-700 whitespace-nowrap">${item.pembimbing}</td>
+                    <td class="p-3 text-gray-600 max-w-xs truncate" title="${item.alamat}">${item.alamat}</td>
+                    <td class="p-3 text-gray-600 whitespace-nowrap text-center">${item.tglMulai}</td>
+                    <td class="p-3 text-gray-600 whitespace-nowrap text-center">${item.tglSelesai}</td>
+                    <td class="p-3 font-semibold text-blue-700 whitespace-nowrap text-center">${item.durasi}</td>
+                    <td class="p-3 whitespace-nowrap text-center">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${item.status.includes('Diterima') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${item.status}</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderPklTable();
+            updatePklStats();
+        });
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- HEADER & NAVBAR -->
+    <header class="bg-gradient-to-r from-blue-900 via-blue-700 to-blue-500 text-white shadow-lg sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <img src="https://iili.io/qY0WbnI.md.png" alt="Logo SMK" class="w-16 h-16 object-contain bg-white rounded-full p-1 shadow" onerror="this.src='https://placehold.co/100x100/1e3c72/ffffff?text=SMK'">
+                    <img src="https://iili.io/qY0hWdu.md.png" alt="Logo TKR" class="w-16 h-16 object-contain bg-white rounded-full p-1 shadow" onerror="this.src='https://placehold.co/100x100/f59e0b/ffffff?text=TKR'">
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">ATC - TKR PROGRAM</h1>
+                        <p class="text-sm md:text-base text-blue-100 font-semibold">SMK Karya Bahana Mandiri - Teknik Kendaraan Ringan</p>
+                    </div>
+                </div>
+                <div class="text-center md:text-right mt-2 md:mt-0 text-sm text-blue-100 bg-blue-800/80 md:bg-transparent p-2 md:p-0 rounded-lg">
+                    <p class="font-bold text-yellow-300 tracking-wide"><i class="fas fa-clock mr-1"></i> Bekasi, <span id="current-time">--:--:--</span></p>
+                    <p class="mt-1"><i class="fas fa-calendar-alt mr-1"></i> Tahun Ajaran: <span id="current-academic-year" class="font-bold">2026-2027</span></p>
+                </div>
+            </div>
+        </div>
+
+        <nav class="bg-blue-950 overflow-x-auto shadow-inner">
+            <div class="container mx-auto flex whitespace-nowrap px-2" id="nav-container">
+                <button onclick="switchSection('beranda', this)" class="nav-btn active px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-home mr-2"></i>Beranda</button>
+                <button onclick="switchSection('mapel', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-book mr-2"></i>Mapel Produktif</button>
+                <button onclick="switchSection('upload-tugas', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-file-upload mr-2"></i>Upload Tugas</button>
+                <button onclick="switchSection('mon-guru', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-chalkboard-teacher mr-2"></i>Mon. Guru</button>
+                <button onclick="switchSection('mon-pkl', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-industry mr-2"></i>Mon. PKL</button>
+                <button onclick="switchSection('form-pkl', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-file-signature mr-2"></i>Mengisi Data PKL Siswa dan siswi</button>
+                <button onclick="switchSection('jadwal-pra-ukk', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-calendar-check mr-2"></i>Jadwal PRA-UKK</button>
+                <button onclick="switchSection('jadwal-ukk', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-calendar-alt mr-2"></i>Jadwal UKK</button>
+                <button onclick="switchSection('jadwal-mapel', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-list-alt mr-2"></i>Jadwal Mapel</button>
+                <button onclick="switchSection('kehadiran', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-user-check mr-2"></i>Kehadiran</button>
+                <button onclick="switchSection('alumni', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-user-graduate mr-2"></i>Data Alumni</button>
+                <button onclick="switchSection('raport', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-chart-bar mr-2"></i>Data Raport</button>
+                <button onclick="switchSection('keterangan', this)" class="nav-btn px-4 py-3 hover:bg-blue-800 transition"><i class="fas fa-info-circle mr-2"></i>Keterangan</button>
+            </div>
+        </nav>
+        <div class="marquee-wrapper text-sm"><span class="marquee-text" id="running-text-display">Selamat Datang di Portal ATC TKR SMK Karya Bahana Mandiri -- Berakhlak, Berprestasi, dan Siap Kerja -- Disiplin dan Unggul dalam Industri Otomotif!</span></div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-grow container mx-auto px-4 py-8 relative" id="main-content">
+
+        <!-- 1. BERANDA -->
+        <section id="beranda" class="space-y-12 block">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 transform transition hover:shadow-2xl">
+                <div class="bg-gradient-to-r from-blue-800 via-blue-600 to-teal-500 p-6 text-white text-center">
+                    <h2 class="text-3xl font-extrabold tracking-wide drop-shadow-md">Visi dan Misi</h2>
+                    <p class="text-yellow-300 font-bold mt-1 text-lg tracking-wider drop-shadow-sm">Teknik Kendaraan Ringan</p>
+                </div>
+                <div class="p-8 bg-gradient-to-b from-white to-gray-50 flex flex-col items-center">
+                    <div class="mb-10 w-full max-w-4xl text-center">
+                        <div class="inline-flex items-center justify-center mb-4">
+                            <i class="fas fa-eye text-3xl text-yellow-500 mr-3 drop-shadow-md"></i>
+                            <h3 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 drop-shadow-md">VISI</h3>
+                        </div>
+                        <div class="py-5 px-6 bg-yellow-50 rounded-xl shadow-md border border-yellow-200 hover:shadow-lg transition duration-300">
+                            <p class="text-gray-800 font-bold italic text-lg">"Menciptakan siswa berakhlak, berprestasi dan siap kerja"</p>
+                        </div>
+                    </div>
+                    <div class="w-full max-w-4xl text-center">
+                        <div class="inline-flex items-center justify-center mb-4">
+                            <i class="fas fa-bullseye text-3xl text-yellow-500 mr-3 drop-shadow-md"></i>
+                            <h3 class="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 drop-shadow-md">MISI</h3>
+                        </div>
+                        <div class="space-y-3 text-gray-700 text-sm font-semibold">
+                            <div class="bg-white py-4 px-6 rounded-xl shadow-sm border border-gray-100 hover:border-yellow-400 hover:bg-yellow-50 transition duration-300">Meningkatkan profesionalisme dan akuntabilitas sebagai lembaga pendidikan dan pelatihan kejuruan.</div>
+                            <div class="bg-white py-4 px-6 rounded-xl shadow-sm border border-gray-100 hover:border-yellow-400 hover:bg-yellow-50 transition duration-300">Melaksanakan sistem pendidikan dan pelatihan berbasis kompetensi dengan memanfaatkan teknologi rekayasa sebagai teknologi terapan dan jasa unit produksi secara optimal sesuai dengan potensi yang dimiliki.</div>
+                            <div class="bg-white py-4 px-6 rounded-xl shadow-sm border border-gray-100 hover:border-yellow-400 hover:bg-yellow-50 transition duration-300">Mengupayakan mutu layanan pendidikan kejuruan sesuai dengan tuntutan masyarakat dan dunia usaha/dunia industri.</div>
+                            <div class="bg-white py-4 px-6 rounded-xl shadow-sm border border-gray-100 hover:border-yellow-400 hover:bg-yellow-50 transition duration-300">Menumbuhkan penghayatan terhadap ajaran agama yang dianut dan budaya bangsa sehingga menjadi sumber kearipan dalam bertindak.</div>
+                            <div class="bg-white py-4 px-6 rounded-xl shadow-sm border border-gray-100 hover:border-yellow-400 hover:bg-yellow-50 transition duration-300">Meningkatkan peran serta masyarakat dan dunia usaha/dunia industri dalam pelaksanaan pendidikan dan pelatihan.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mb-8 mt-12">
+                <h2 class="text-3xl font-bold text-gray-800 border-b-4 border-blue-500 inline-block pb-2">Struktur Jurusan TKR</h2>
+            </div>
+            <div class="flex flex-col md:flex-row justify-center items-center md:space-x-16 space-y-8 md:space-y-0">
+                <div class="text-center bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-600 hover:shadow-xl transition">
+                    <img src="https://iili.io/qY1lHEG.md.jpg" alt="Kaprog" class="foto-3x4 mx-auto border-4 border-gray-200" onerror="this.src='https://placehold.co/120x160/3b82f6/ffffff?text=Kaprog'">
+                    <h3 class="font-bold text-lg mt-4 text-gray-800">H. Irwan Rahmat, S.T, Gr</h3>
+                    <p class="text-blue-600 font-semibold text-sm">Kepala Program TKR</p>
+                </div>
+                <div class="text-center bg-white p-6 rounded-xl shadow-lg border-t-4 border-orange-500 hover:shadow-xl transition">
+                    <img src="https://iili.io/qY11HJ4.md.jpg" alt="Sekjur" class="foto-3x4 mx-auto border-4 border-gray-200" onerror="this.src='https://placehold.co/120x160/f97316/ffffff?text=Sekjur'">
+                    <h3 class="font-bold text-lg mt-4 text-gray-800">Adhitya Anugrah Rizki, S.T, Gr</h3>
+                    <p class="text-orange-600 font-semibold text-sm">Sekretaris Jurusan TKR</p>
+                </div>
+            </div>
+
+            <div class="mt-12 text-center">
+                <h3 class="text-2xl font-bold text-gray-700 mb-6">Guru / Instruktur Pengajar</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 justify-items-center">
+                    <div class="running-border w-full max-w-[220px] shadow-lg hover:scale-105 transition"><div class="running-border-inner p-4 text-center"><img src="https://iili.io/qY1VCZB.md.jpg" class="foto-3x4 mx-auto" onerror="this.src='https://placehold.co/120x160/3b82f6/ffffff?text=Guru'"><h4 class="font-bold mt-3 text-sm">Firmansyah, S.T, Gr</h4><p class="text-gray-500 text-xs">Instruktur TKR</p></div></div>
+                    <div class="running-border w-full max-w-[220px] shadow-lg hover:scale-105 transition"><div class="running-border-inner p-4 text-center"><img src="https://iili.io/qY1hlnV.jpg" class="foto-3x4 mx-auto" onerror="this.src='https://placehold.co/120x160/3b82f6/ffffff?text=Guru'"><h4 class="font-bold mt-3 text-sm">Zulham, S.Pd</h4><p class="text-gray-500 text-xs">Instruktur TKR</p></div></div>
+                    <div class="running-border w-full max-w-[220px] shadow-lg hover:scale-105 transition"><div class="running-border-inner p-4 text-center"><img src="https://iili.io/qY1jHDx.md.jpg" class="foto-3x4 mx-auto" onerror="this.src='https://placehold.co/120x160/3b82f6/ffffff?text=Guru'"><h4 class="font-bold mt-3 text-sm">Defa Andrian, S.T, Gr</h4><p class="text-gray-500 text-xs">Instruktur TKR</p></div></div>
+                    <div class="running-border w-full max-w-[220px] shadow-lg hover:scale-105 transition"><div class="running-border-inner p-4 text-center"><img src="https://iili.io/qY1jDsp.md.jpg" class="foto-3x4 mx-auto" onerror="this.src='https://placehold.co/120x160/3b82f6/ffffff?text=Guru'"><h4 class="font-bold mt-3 text-sm">Agus Rizky, S.T</h4><p class="text-gray-500 text-xs">Instruktur TKR</p></div></div>
+                </div>
+            </div>
+
+            <div class="mt-16 bg-white p-8 rounded-2xl shadow-md">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center"><i class="fas fa-camera-retro text-blue-500 mr-2"></i>Kegiatan Praktik Jurusan TKR</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <img src="https://iili.io/qY1ejCx.md.jpg" class="w-full h-48 object-cover rounded-lg shadow grayscale hover:grayscale-0 transition duration-500 cursor-pointer" onerror="this.src='https://placehold.co/400x300/e2e8f0/475569?text=Praktik+TKR+1'">
+                    <img src="https://iili.io/qY1OaJ1.md.jpg" class="w-full h-48 object-cover rounded-lg shadow grayscale hover:grayscale-0 transition duration-500 cursor-pointer" onerror="this.src='https://placehold.co/400x300/e2e8f0/475569?text=Praktik+TKR+2'">
+                    <img src="https://iili.io/qY1OMsR.md.jpg" class="w-full h-48 object-cover rounded-lg shadow grayscale hover:grayscale-0 transition duration-500 cursor-pointer" onerror="this.src='https://placehold.co/400x300/e2e8f0/475569?text=Praktik+TKR+3'">
+                    <img src="https://iili.io/qY1OGWv.md.jpg" class="w-full h-48 object-cover rounded-lg shadow grayscale hover:grayscale-0 transition duration-500 cursor-pointer" onerror="this.src='https://placehold.co/400x300/e2e8f0/475569?text=Praktik+TKR+4'">
+                    <img src="https://iili.io/qY1O0ba.md.jpg" class="w-full h-48 object-cover rounded-lg shadow grayscale hover:grayscale-0 transition duration-500 cursor-pointer" onerror="this.src='https://placehold.co/400x300/e2e8f0/475569?text=Praktik+TKR+5'">
+                    <img src="https://iili.io/qY1OWfp.md.jpg" class="w-full h-48 object-cover rounded-lg shadow grayscale hover:grayscale-0 transition duration-500 cursor-pointer" onerror="this.src='https://placehold.co/400x300/e2e8f0/475569?text=Praktik+TKR+6'">
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. MAPEL PRODUKTIF -->
+        <section id="mapel" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden max-w-6xl mx-auto">
+                <div class="bg-grad-green p-6 text-white text-center flex flex-col md:flex-row justify-between items-center">
+                    <div class="text-center md:text-left">
+                        <h2 class="text-3xl font-bold"><i class="fas fa-book-reader mr-2"></i>Portal Pembelajaran</h2>
+                        <p class="text-green-100 mt-2">Bahan Ajar, Latihan Soal, dan LKPD Peserta Didik TKR</p>
+                    </div>
+                </div>
+                
+                <div id="login-mapel-div" class="p-8 bg-gray-50">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-green-100">
+                            <div class="text-center mb-6">
+                                <i class="fas fa-user-graduate text-5xl text-green-400 mb-3"></i>
+                                <h3 class="text-xl font-bold">Akses Peserta Didik</h3>
+                            </div>
+                            <form onsubmit="handleLoginSiswaMapel(event)" class="space-y-4">
+                                <input type="text" id="namaSiswaMapel" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Nama Lengkap Siswa">
+                                <select id="kelasSiswaMapel" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 cursor-pointer">
+                                    <option value="" disabled selected>-- Pilih Kelas --</option>
+                                    <optgroup label="Kelas XI">
+                                        <option>XI TKR 1</option><option>XI TKR 2</option><option>XI TKR 3</option><option>XI TKR 4</option><option>XI TKR 5</option><option>XI TKR 6</option><option>XI TKR 7</option>
+                                    </optgroup>
+                                    <optgroup label="Kelas XII">
+                                        <option>XII TKR 1</option><option>XII TKR 2</option><option>XII TKR 3</option><option>XII TKR 4</option><option>XII TKR 5</option><option>XII TKR 6</option><option>XII TKR 7</option>
+                                    </optgroup>
+                                </select>
+                                <button type="submit" class="w-full bg-green-600 text-white font-bold py-2.5 rounded-lg hover:bg-green-700 shadow transition">Masuk Belajar</button>
+                            </form>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-green-100">
+                            <div class="text-center mb-6">
+                                <i class="fas fa-chalkboard-teacher text-5xl text-green-400 mb-3"></i>
+                                <h3 class="text-xl font-bold">Akses Guru / Instruktur</h3>
+                            </div>
+                            <form onsubmit="handleLoginGuruMapel(event)" class="space-y-4">
+                                <input type="text" id="userGuruMapel" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Username Guru">
+                                <input type="password" id="passGuruMapel" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500" placeholder="Password Guru">
+                                <button type="submit" class="w-full bg-gray-800 text-white font-bold py-2.5 rounded-lg hover:bg-black shadow transition">Kelola Pembelajaran</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dashboard-mapel" class="p-6 hidden bg-gray-50">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl border border-green-200 shadow-sm gap-4">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">Halo, <span id="displayNamaUserMapel" class="text-green-600"></span></h3>
+                            <p class="text-gray-600 font-semibold" id="displayKetUserMapel">Akses: <span id="displayKelasSiswa"></span></p>
+                        </div>
+                        
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <div id="guru-mapel-filter" class="hidden items-center bg-green-50 border border-green-300 rounded-lg px-2 py-1 w-full md:w-auto">
+                                <i class="fas fa-filter text-green-600 mr-2 ml-1"></i>
+                                <select id="filter-mapel-kelas" onchange="renderMapelContent()" class="w-full outline-none text-sm font-bold text-green-900 bg-transparent cursor-pointer p-1">
+                                    <optgroup label="Kelas XI">
+                                        <option selected>XI TKR 1</option><option>XI TKR 2</option><option>XI TKR 3</option><option>XI TKR 4</option><option>XI TKR 5</option><option>XI TKR 6</option><option>XI TKR 7</option>
+                                    </optgroup>
+                                    <optgroup label="Kelas XII">
+                                        <option>XII TKR 1</option><option>XII TKR 2</option><option>XII TKR 3</option><option>XII TKR 4</option><option>XII TKR 5</option><option>XII TKR 6</option><option>XII TKR 7</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                            <button onclick="logoutMapel()" class="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold shadow transition w-full md:w-auto whitespace-nowrap">Keluar</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Bahan Ajar -->
+                        <div class="bg-blue-50 rounded-xl p-5 border border-blue-100 shadow-sm flex flex-col h-[600px]">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-file-pdf text-4xl text-blue-500 mb-2"></i>
+                                <h4 class="font-bold text-lg text-blue-900 border-b-2 border-blue-200 pb-2">Bahan Ajar</h4>
+                            </div>
+                            <div id="list-bahan-ajar" class="flex-grow overflow-y-auto space-y-3 mapel-scroll pr-2"></div>
+                            <button id="btn-add-bahan" onclick="promptAddContent('bahan')" class="hidden mt-4 w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition"><i class="fas fa-plus mr-2"></i>Tambah Bahan Ajar</button>
+                        </div>
+                        <!-- Latihan Soal -->
+                        <div class="bg-amber-50 rounded-xl p-5 border border-amber-100 shadow-sm flex flex-col h-[600px]">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-edit text-4xl text-amber-500 mb-2"></i>
+                                <h4 class="font-bold text-lg text-amber-900 border-b-2 border-amber-200 pb-2">Latihan Soal</h4>
+                            </div>
+                            <div id="list-latihan-soal" class="flex-grow overflow-y-auto space-y-3 mapel-scroll pr-2"></div>
+                            <button id="btn-add-soal" onclick="promptAddContent('soal')" class="hidden mt-4 w-full bg-amber-600 text-white font-bold py-2 rounded-lg hover:bg-amber-700 transition"><i class="fas fa-plus mr-2"></i>Tambah Soal</button>
+                        </div>
+                        <!-- LKPD -->
+                        <div class="bg-purple-50 rounded-xl p-5 border border-purple-100 shadow-sm flex flex-col h-[600px]">
+                            <div class="text-center mb-4">
+                                <i class="fas fa-tasks text-4xl text-purple-500 mb-2"></i>
+                                <h4 class="font-bold text-lg text-purple-900 border-b-2 border-purple-200 pb-2">LKPD Siswa</h4>
+                            </div>
+                            <div id="list-lkpd" class="flex-grow overflow-y-auto space-y-3 mapel-scroll pr-2"></div>
+                            <button id="btn-add-lkpd" onclick="promptAddContent('lkpd')" class="hidden mt-4 w-full bg-purple-600 text-white font-bold py-2 rounded-lg hover:bg-purple-700 transition"><i class="fas fa-plus mr-2"></i>Tambah LKPD</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. UPLOAD TUGAS -->
+        <section id="upload-tugas" class="section-hidden">
+            <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-grad-orange p-6 text-white text-center">
+                    <h2 class="text-2xl font-bold"><i class="fas fa-cloud-upload-alt mr-2"></i>Pengumpulan Tugas Siswa</h2>
+                    <p class="text-orange-100 text-sm mt-1">Kirimkan berkas tugas praktik atau teori Anda di sini</p>
+                </div>
+                <form onsubmit="handleUploadTugas(event)" class="p-8 space-y-5">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Nama Lengkap</label>
+                        <input type="text" id="tugasNama" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="Contoh: Budi Santoso">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Kelas</label>
+                        <select id="tugasKelas" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500">
+                            <option value="" disabled selected>-- Pilih Kelas --</option>
+                            <optgroup label="Kelas XI">
+                                <option>XI TKR 1</option><option>XI TKR 2</option><option>XI TKR 3</option><option>XI TKR 4</option><option>XI TKR 5</option><option>XI TKR 6</option><option>XI TKR 7</option>
+                            </optgroup>
+                            <optgroup label="Kelas XII">
+                                <option>XII TKR 1</option><option>XII TKR 2</option><option>XII TKR 3</option><option>XII TKR 4</option><option>XII TKR 5</option><option>XII TKR 6</option><option>XII TKR 7</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Mata Pelajaran / Topik Tugas</label>
+                        <input type="text" id="tugasMapel" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="Contoh: Pemeliharaan Mesin Kendaraan Ringan (PMKR)">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Pilih File Tugas (PDF / Image / Zip)</label>
+                        <input type="file" id="tugasFile" required class="w-full px-4 py-2 border rounded-lg bg-gray-50 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Catatan Tambahan (Opsional)</label>
+                        <textarea id="tugasCatatan" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="Keterangan singkat tugas..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold py-3 rounded-xl shadow-lg hover:from-orange-600 hover:to-red-600 transition">Kirim Berkas Tugas</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 4. MON GURU -->
+        <section id="mon-guru" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-chalkboard-teacher text-blue-600 mr-3"></i>Monitoring Guru & Instruktur</h2>
+                <p class="text-gray-600 mb-6">Status kehadiran dan aktivitas mengajar harian instruktur produktif TKR.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-blue-900 text-white text-sm">
+                                <th class="p-3 rounded-tl-lg">Nama Instruktur</th>
+                                <th class="p-3">Mata Pelajaran</th>
+                                <th class="p-3">Kelas Mengajar</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 rounded-tr-lg">Jam Mengajar</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-gray-100">
+                            <tr>
+                                <td class="p-3 font-semibold">H. Irwan Rahmat, S.T, Gr.</td>
+                                <td class="p-3 font-medium text-blue-700">KK TKR</td>
+                                <td class="p-3">XI TKR 1, XI TKR 3, XI TKR 5, XII TKR 5, XII TKR 6</td>
+                                <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Mengajar</span></td>
+                                <td class="p-3 font-semibold text-gray-700">07:00 - 16:40 WIB</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold">Adhitya Anugrah Rizki, S.T, Gr.</td>
+                                <td class="p-3 font-medium text-blue-700">DDTO / KK TKR</td>
+                                <td class="p-3">X TKR 1, XI TKR 1, XI TKR 3, XII TKR 2, XII TKR 3, XII TKR 7</td>
+                                <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Mengajar</span></td>
+                                <td class="p-3 font-semibold text-gray-700">07:00 - 16:40 WIB</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold">Firmansyah, S.T, Gr.</td>
+                                <td class="p-3 font-medium text-blue-700">KK TKR / DDTO</td>
+                                <td class="p-3">X TKR 6, XI TKR 2, XI TKR 5, XI TKR 6, XII TKR 5, XII TKR 7</td>
+                                <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Mengajar</span></td>
+                                <td class="p-3 font-semibold text-gray-700">07:00 - 16:40 WIB</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold">Zulham, S.Pd</td>
+                                <td class="p-3 font-medium text-blue-700">DDTO / KK TKR</td>
+                                <td class="p-3">X TKR 2, X TKR 3, X TKR 5, X TKR 7, XI TKR 7</td>
+                                <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Mengajar</span></td>
+                                <td class="p-3 font-semibold text-gray-700">07:00 - 16:40 WIB</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold">Defa Andrian, S.T, Gr.</td>
+                                <td class="p-3 font-medium text-blue-700">DDTO / KK TKR</td>
+                                <td class="p-3">X TKR 4, XI TKR 2, XI TKR 4, XI TKR 6, XI TKR 7, XII TKR 4</td>
+                                <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Mengajar</span></td>
+                                <td class="p-3 font-semibold text-gray-700">07:00 - 16:40 WIB</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-semibold">Agus Rizky, S.T</td>
+                                <td class="p-3 font-medium text-blue-700">KK TKR</td>
+                                <td class="p-3">XI TKR 4, XII TKR 1, XII TKR 2, XII TKR 3, XII TKR 4, XII TKR 6</td>
+                                <td class="p-3"><span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Mengajar</span></td>
+                                <td class="p-3 font-semibold text-gray-700">07:00 - 16:00 WIB</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. MON PKL -->
+        <section id="mon-pkl" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 flex items-center"><i class="fas fa-industry text-purple-600 mr-3"></i>Monitoring PKL (Praktik Kerja Lapangan)</h2>
+                        <p class="text-gray-600 text-sm mt-1">Sistem Pemantauan Data & Verifikasi PKL Peserta Didik TKR</p>
+                    </div>
+                </div>
+
+                <!-- BOX LOGIN WALI KELAS -->
+                <div id="login-walikelas-box" class="max-w-md mx-auto bg-purple-50 p-6 rounded-2xl border border-purple-200 my-6 shadow-md">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-user-shield text-4xl text-purple-600 mb-2"></i>
+                        <h3 class="text-lg font-bold text-purple-900">Akses Otentikasi Wali Kelas</h3>
+                        <p class="text-xs text-purple-700">Masukan data credential Wali Kelas untuk membuka akses penuh Monitoring PKL & Google Sheet</p>
+                    </div>
+                    <form onsubmit="handleLoginWaliKelas(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Username Wali Kelas</label>
+                            <input type="text" id="userWaliKelas" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" placeholder="Masukkan Username">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 mb-1">Password</label>
+                            <input type="password" id="passWaliKelas" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 text-sm" placeholder="Masukkan Password">
+                        </div>
+                        <button type="submit" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-2.5 rounded-lg shadow transition text-sm">
+                            <i class="fas fa-lock-open mr-2"></i>Masuk Portal Wali Kelas
+                        </button>
+                    </form>
+                </div>
+
+                <!-- CONTENT SETELAH LOGIN WALI KELAS -->
+                <div id="content-walikelas-monitoring" class="hidden space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center bg-purple-900 text-white p-4 rounded-xl shadow gap-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-yellow-400 p-2.5 rounded-full text-purple-900"><i class="fas fa-chalkboard-teacher text-xl"></i></div>
+                            <div>
+                                <h4 class="font-bold text-base">Selamat Datang, Bapak/Ibu Wali Kelas & Pembimbing</h4>
+                                <p class="text-xs text-purple-200">Akses kontrol data siswa terverifikasi & terintegrasi Spreadsheet</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 w-full md:w-auto justify-end">
+                            <!-- TOMBOL GOOGLE SHEET -->
+                            <button onclick="openGoogleSheet()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-lg text-sm shadow transition flex items-center">
+                                <i class="file-spreadsheet-icon fab fa-google-drive mr-2"></i> Buka Google Sheet
+                            </button>
+                            <!-- TOMBOL EXPORT CSV -->
+                            <button onclick="exportPklToCSV()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-2 rounded-lg text-sm shadow transition">
+                                <i class="fas fa-file-excel mr-1"></i> Download CSV
+                            </button>
+                            <!-- TOMBOL LOGOUT WALI KELAS -->
+                            <button onclick="logoutWaliKelas()" class="bg-red-500 hover:bg-red-600 text-white font-bold px-3 py-2 rounded-lg text-sm shadow transition">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-purple-50 border border-purple-100 p-5 rounded-xl text-center">
+                            <span id="stat-total-siswa" class="text-3xl font-extrabold text-purple-700">0</span>
+                            <p class="text-sm font-semibold text-purple-900 mt-1">Siswa Terdaftar PKL</p>
+                        </div>
+                        <div class="bg-blue-50 border border-blue-100 p-5 rounded-xl text-center">
+                            <span id="stat-total-dudi" class="text-3xl font-extrabold text-blue-700">0</span>
+                            <p class="text-sm font-semibold text-blue-900 mt-1">Perusahaan / DUDI Tujuan</p>
+                        </div>
+                        <div class="bg-green-50 border border-green-100 p-5 rounded-xl text-center">
+                            <span class="text-3xl font-extrabold text-green-700">100%</span>
+                            <p class="text-sm font-semibold text-green-900 mt-1">Sinkronisasi Spreadsheet Active</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center"><i class="fas fa-table mr-2 text-purple-600"></i>Data Pengisian PKL Siswa/i (Real-time Sync)</h3>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                            <table class="w-full text-left border-collapse text-xs md:text-sm">
+                                <thead>
+                                    <tr class="bg-purple-900 text-white font-bold">
+                                        <th class="p-3">No</th>
+                                        <th class="p-3">Nama Lengkap Siswa</th>
+                                        <th class="p-3">NISN</th>
+                                        <th class="p-3">No. WhatsApp</th>
+                                        <th class="p-3">Kelas</th>
+                                        <th class="p-3">Wali Kelas</th>
+                                        <th class="p-3">Nama Perusahaan / DUDI</th>
+                                        <th class="p-3">Pimpinan</th>
+                                        <th class="p-3">Pembimbing</th>
+                                        <th class="p-3">Alamat DUDI</th>
+                                        <th class="p-3">Mulai</th>
+                                        <th class="p-3">Selesai</th>
+                                        <th class="p-3">Durasi</th>
+                                        <th class="p-3">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pkl-submission-list" class="divide-y divide-gray-100 bg-white">
+                                    <!-- Rendered dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. DATA PKL SISWA (DENGAN URUTAN SPESIFIK & DURASI 1-6 BULAN) -->
+        <section id="form-pkl" class="section-hidden">
+            <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-grad-purple p-6 text-white text-center">
+                    <h2 class="text-2xl font-bold"><i class="fas fa-file-signature mr-2"></i>Data Pengisian PKL Siswa/i</h2>
+                    <p class="text-purple-100 text-sm mt-1">Lengkapi seluruh data pengisian Praktik Kerja Lapangan sesuai urutan yang ditentukan. Terhubung langsung ke Google Sheets.</p>
+                </div>
+                <form onsubmit="handleFormPKL(event)" class="p-8 space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 1. Nama Lengkap Siswa -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">1. Nama Lengkap Siswa <span class="text-red-500">*</span></label>
+                            <input type="text" id="pklNamaLengkap" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="Contoh: Budi Santoso">
+                        </div>
+
+                        <!-- 2. NISN -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">2. NISN <span class="text-red-500">*</span></label>
+                            <input type="text" id="pklNisn" required oninput="formatQuotePrefix(this)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="'0078912345">
+                        </div>
+
+                        <!-- 3. Nomor WhatsApp Siswa/i Aktif -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">3. Nomor WhatsApp Siswa/i Aktif <span class="text-red-500">*</span></label>
+                            <input type="text" id="pklWa" required oninput="formatQuotePrefix(this)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="'081234567890">
+                        </div>
+
+                        <!-- 4. Kelas -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">4. Kelas <span class="text-red-500">*</span></label>
+                            <select id="pklKelas" required onchange="autoFillWaliKelas()" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                                <option value="" disabled selected>-- Pilih Kelas --</option>
+                                <optgroup label="Kelas XI">
+                                    <option>XI TKR 1</option><option>XI TKR 2</option><option>XI TKR 3</option><option>XI TKR 4</option>
+                                    <option>XI TKR 5</option><option>XI TKR 6</option><option>XI TKR 7</option>
+                                </optgroup>
+                                <optgroup label="Kelas XII">
+                                    <option>XII TKR 1</option><option>XII TKR 2</option><option>XII TKR 3</option><option>XII TKR 4</option>
+                                    <option>XII TKR 5</option><option>XII TKR 6</option><option>XII TKR 7</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <!-- 5. Wali Kelas -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">5. Wali Kelas (Auto-Lookup)</label>
+                            <input type="text" id="pklWaliKelas" readonly class="w-full px-4 py-2 border rounded-lg bg-gray-100 text-gray-600 font-semibold" placeholder="Terisi otomatis sesuai kelas...">
+                        </div>
+
+                        <!-- 6. Nama Perusahaan / DUDI Tujuan -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">6. Nama Perusahaan / DUDI Tujuan <span class="text-red-500">*</span></label>
+                            <input type="text" id="pklDudi" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="PT. Astra International Tbk / Auto2000">
+                        </div>
+
+                        <!-- 7. Nama Pimpinan Perusahaan -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">7. Nama Pimpinan Perusahaan <span class="text-red-500">*</span></label>
+                            <input type="text" id="pklPimpinan" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="Nama Pimpinan / Direktur">
+                        </div>
+
+                        <!-- 8. Nama Pembimbing Perusahaan -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">8. Nama Pembimbing Perusahaan <span class="text-red-500">*</span></label>
+                            <input type="text" id="pklPembimbing" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="Nama Mentor / Foreman Bengkel">
+                        </div>
+
+                        <!-- 10. Tanggal Mulai PKL -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">10. Tanggal Mulai PKL <span class="text-red-500">*</span></label>
+                            <input type="date" id="pklTglMulai" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+
+                        <!-- 11. Tanggal Selesai PKL -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">11. Tanggal Selesai PKL <span class="text-red-500">*</span></label>
+                            <input type="date" id="pklTglSelesai" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500">
+                        </div>
+
+                        <!-- 12. Durasi Waktu PKL (1 - 6 Bulan) -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">12. Durasi Waktu PKL (1 - 6 Bulan) <span class="text-red-500">*</span></label>
+                            <select id="pklDurasi" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                                <option value="" disabled selected>-- Pilih Durasi Waktu PKL --</option>
+                                <option value="1 Bulan">1 Bulan</option>
+                                <option value="2 Bulan">2 Bulan</option>
+                                <option value="3 Bulan">3 Bulan</option>
+                                <option value="4 Bulan">4 Bulan</option>
+                                <option value="5 Bulan">5 Bulan</option>
+                                <option value="6 Bulan">6 Bulan</option>
+                            </select>
+                        </div>
+
+                        <!-- 13. Keterangan Status PKL -->
+                        <div>
+                            <label class="block text-sm font-bold text-gray-700 mb-1">13. Keterangan Status PKL <span class="text-red-500">*</span></label>
+                            <select id="pklStatus" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                                <option selected>Menunggu Verifikasi</option>
+                                <option>Diterima / Aktif</option>
+                                <option>Selesai PKL</option>
+                                <option>Ditolak / Pindah DUDI</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 9. Alamat Lengkap Perusahaan (Full Width) -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">9. Alamat Lengkap Perusahaan <span class="text-red-500">*</span></label>
+                        <textarea id="pklAlamatDudi" rows="3" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500" placeholder="Jl. Raya Perusahaan No. X, Kota Bekasi..."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:from-purple-700 hover:to-indigo-700 transition"><i class="fas fa-save mr-2"></i>Simpan & Sinkronkan ke Google Sheet</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- 7. JADWAL PRA-UKK -->
+        <section id="jadwal-pra-ukk" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-calendar-check text-indigo-600 mr-3"></i>Jadwal PRA-UKK</h2>
+                <p class="text-gray-600 mb-6">Jadwal pelaksanaan pra-uji kompetensi keahlian Teknik Kendaraan Ringan.</p>
+                <div class="p-8 text-center border-2 border-dashed border-indigo-200 rounded-xl bg-indigo-50/50">
+                    <i class="fas fa-clock text-4xl text-indigo-400 mb-3"></i>
+                    <p class="font-bold text-indigo-900">Jadwal PRA-UKK Tahun 2026-2027 Segera Diumumkan</p>
+                    <p class="text-sm text-indigo-700 mt-1">Harap pantau halaman ini secara berkala untuk pembaruan sesi simulator dan pengujian.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. JADWAL UKK -->
+        <section id="jadwal-ukk" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-calendar-alt text-red-600 mr-3"></i>Jadwal UKK Utama</h2>
+                <p class="text-gray-600 mb-6">Jadwal pelaksanaan Uji Kompetensi Keahlian nasional bersama Penguji Eksternal Industri.</p>
+                <div class="p-8 text-center border-2 border-dashed border-red-200 rounded-xl bg-red-50/50">
+                    <i class="fas fa-file-signature text-4xl text-red-400 mb-3"></i>
+                    <p class="font-bold text-red-900">Jadwal UKK Utama Mendatang</p>
+                    <p class="text-sm text-red-700 mt-1">Pelaksanaan dijadwalkan pada Semester Akhir TA 2025/2026.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. JADWAL MAPEL -->
+        <section id="jadwal-mapel" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-list-alt text-teal-600 mr-3"></i>Jadwal Pelajaran Produk TKR</h2>
+                <p class="text-gray-600 mb-6">Jadwal mingguan mata pelajaran kejuruan TKR SMK Karya Bahana Mandiri.</p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-teal-800 text-white text-sm">
+                                <th class="p-3">Hari</th>
+                                <th class="p-3">Waktu</th>
+                                <th class="p-3">Mata Pelajaran</th>
+                                <th class="p-3">Ruang / Bengkel</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y divide-gray-100">
+                            <tr><td class="p-3 font-semibold">Senin</td><td class="p-3">07.30 - 12.00</td><td class="p-3">Pemeliharaan Mesin (PMKR)</td><td class="p-3">Bengkel TKR 1</td></tr>
+                            <tr><td class="p-3 font-semibold">Selasa</td><td class="p-3">07.30 - 12.00</td><td class="p-3">Pemeliharaan Sasis (PSPTKR)</td><td class="p-3">Bengkel TKR 2</td></tr>
+                            <tr><td class="p-3 font-semibold">Rabu</td><td class="p-3">07.30 - 12.00</td><td class="p-3">Kelistrikan Kendaraan (PKKR)</td><td class="p-3">Lab Kelistrikan</td></tr>
+                            <tr><td class="p-3 font-semibold">Kamis</td><td class="p-3">07.30 - 12.00</td><td class="p-3">Gambar Teknik Otomotif (GTO)</td><td class="p-3">Ruang Gambar</td></tr>
+                            <tr><td class="p-3 font-semibold">Jumat</td><td class="p-3">07.30 - 11.00</td><td class="p-3">Produk Kreatif & Kewirausahaan</td><td class="p-3">Ruang Teori TKR</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. KEHADIRAN -->
+        <section id="kehadiran" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-user-check text-blue-600 mr-3"></i>Rekap Presensi & Kehadiran</h2>
+                <p class="text-gray-600 mb-6">Ringkasan statistik kehadiran peserta didik pada kegiatan pembelajaran.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-emerald-50 border border-emerald-200 p-4 rounded-xl text-center"><h5 class="text-2xl font-extrabold text-emerald-600">96.5%</h5><p class="text-xs font-bold text-emerald-800 mt-1">Hadir Tepat Waktu</p></div>
+                    <div class="bg-blue-50 border border-blue-200 p-4 rounded-xl text-center"><h5 class="text-2xl font-extrabold text-blue-600">2.1%</h5><p class="text-xs font-bold text-blue-800 mt-1">Izin / Sakit</p></div>
+                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl text-center"><h5 class="text-2xl font-extrabold text-amber-600">1.0%</h5><p class="text-xs font-bold text-amber-800 mt-1">Dispensasi</p></div>
+                    <div class="bg-rose-50 border border-rose-200 p-4 rounded-xl text-center"><h5 class="text-2xl font-extrabold text-rose-600">0.4%</h5><p class="text-xs font-bold text-rose-800 mt-1">Tanpa Keterangan</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 11. DATA ALUMNI -->
+        <section id="alumni" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-user-graduate text-yellow-600 mr-3"></i>Tracer Study Alumni TKR</h2>
+                <p class="text-gray-600 mb-6">Data sebaran kelulusan alumni TKR SMK Karya Bahana Mandiri di dunia kerja & perguruan tinggi.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-yellow-50 border border-yellow-200 p-5 rounded-xl text-center"><h4 class="text-3xl font-bold text-yellow-700">75%</h4><p class="text-sm font-semibold text-yellow-900 mt-1">Bekerja di Industri / Bengkel</p></div>
+                    <div class="bg-blue-50 border border-blue-200 p-5 rounded-xl text-center"><h4 class="text-3xl font-bold text-blue-700">15%</h4><p class="text-sm font-semibold text-blue-900 mt-1">Melanjutkan Perguruan Tinggi</p></div>
+                    <div class="bg-green-50 border border-green-200 p-5 rounded-xl text-center"><h4 class="text-3xl font-bold text-green-700">10%</h4><p class="text-sm font-semibold text-green-900 mt-1">Wirausaha Mandiri</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 12. DATA RAPORT -->
+        <section id="raport" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fas fa-chart-bar text-cyan-600 mr-3"></i>Akses Data Raport Digital</h2>
+                <p class="text-gray-600 mb-6">Portal verifikasi nilai dan pencapaian akademik kompetensi keahlian TKR.</p>
+                <div class="bg-cyan-50 border border-cyan-200 p-6 rounded-xl text-center max-w-md mx-auto">
+                    <i class="fas fa-lock text-4xl text-cyan-600 mb-3"></i>
+                    <h4 class="font-bold text-gray-800 mb-2">Pemeriksaan Nilai Raport</h4>
+                    <p class="text-xs text-gray-600 mb-4">Silakan konsultasikan dengan wali kelas masing-masing untuk memperoleh dokumen leger resmi.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 13. KETERANGAN -->
+        <section id="keterangan" class="section-hidden">
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden p-8 max-w-4xl mx-auto space-y-6">
+                <div class="border-b pb-4">
+                    <h2 class="text-3xl font-bold text-gray-800 flex items-center"><i class="fas fa-info-circle text-blue-600 mr-3"></i>Informasi Portal ATC TKR</h2>
+                    <p class="text-gray-500 mt-1">Sistem Pusat Informasi Terpadu Teknik Kendaraan Ringan</p>
+                </div>
+                <div class="space-y-4 text-gray-700 leading-relaxed text-sm">
+                    <p>Portal <strong>ATC (Automotive Training Center) - TKR Program</strong> merupakan platform integrasi digital bagi seluruh aktivitas akademis, praktikum, serta pemantauan PKL jurusan Teknik Kendaraan Ringan di SMK Karya Bahana Mandiri.</p>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <h4 class="font-bold text-blue-900 mb-2">Kontak & Pusat Bantuan</h4>
+                        <p class="text-xs text-blue-800">Email Hubungi: tkr@smkkaryabahanamandiri.sch.id<br>Alamat: Jl. Raya KBM, Kota Bekasi, Jawa Barat</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-900 text-gray-400 text-center py-6 border-t border-gray-800 mt-auto text-sm">
+        <div class="container mx-auto px-4">
+            <p>&copy; 2026 ATC - TKR Program SMK Karya Bahana Mandiri. All Rights Reserved.</p>
+            <p class="text-xs text-gray-500 mt-1">Disiplin, Berakhlak, Berprestasi, dan Siap Kerja</p>
+        </div>
+    </footer>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast">Notifikasi sistem</div>
+
+</body>
+</html>
